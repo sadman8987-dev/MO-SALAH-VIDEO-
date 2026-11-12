@@ -19,6 +19,7 @@ from yt_dlp.utils import DownloadError as YDLError
 from yt_dlp.utils import download_range_func
 
 from .config import Config
+from ytdlp_fix import apply_fix
 
 log = logging.getLogger(__name__)
 
@@ -91,7 +92,7 @@ def _clean_error(e: Exception) -> str:
     return (lines[-1] if lines else "unknown error")[:300]
 
 
-def _opts(cfg: Config) -> dict:
+def _opts(cfg: Config, url: str = "") -> dict:
     o = {
         "quiet": True,
         "no_warnings": True,
@@ -111,6 +112,8 @@ def _opts(cfg: Config) -> dict:
     if cfg.use_aria2 and shutil.which("aria2c"):
         o["external_downloader"] = {"default": "aria2c"}
         o["external_downloader_args"] = {"aria2c": ["-x16", "-s16", "-k1M"]}
+    if url and ("youtube.com/" in url.lower() or "youtu.be/" in url.lower() or "music.youtube.com/" in url.lower()):
+        o = apply_fix(o)
     return o
 
 
@@ -146,7 +149,7 @@ def is_direct_url(url: str) -> bool:
 
 # ------------------------------------------------------------ extraction
 def _extract_sync(url: str, cfg: Config, flat: bool = True) -> dict:
-    opts = _opts(cfg)
+    opts = _opts(cfg, url)
     opts["skip_download"] = True
     if flat:
         opts["extract_flat"] = "in_playlist"
@@ -270,7 +273,7 @@ async def extract_info(url: str, cfg: Config) -> MediaInfo:
 
 # ---------------------------------------------------------------- search
 def _search_sync(query: str, cfg: Config, n: int) -> list:
-    opts = _opts(cfg)
+    opts = _opts(cfg, "https://www.youtube.com/")
     opts.update(extract_flat=True, skip_download=True)
     try:
         with yt_dlp.YoutubeDL(opts) as ydl:
@@ -319,7 +322,7 @@ def normalize_feed_url(url: str) -> str:
 
 
 def _latest_sync(url: str, cfg: Config, n: int):
-    opts = _opts(cfg)
+    opts = _opts(cfg, url)
     opts.update(
         extract_flat="in_playlist", skip_download=True, playlistend=n, noplaylist=False
     )
@@ -366,7 +369,7 @@ def _download_sync(url, outdir, kind, q, cfg: Config, state: dict, clip=None):
             state["pct"] = 100.0
             state["stage"] = "processing"
 
-    opts = _opts(cfg)
+    opts = _opts(cfg, url)
     opts.update(
         outtmpl=os.path.join(outdir, "media.%(ext)s"),
         progress_hooks=[hook],
