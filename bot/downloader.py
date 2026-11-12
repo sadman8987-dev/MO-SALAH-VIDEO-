@@ -549,7 +549,7 @@ async def fetch_gallery(url: str, cfg: Config, max_files: int = 10):
 
 # ------------------------------------------------------------- subtitles
 def _subs_sync(url: str, outdir: str, code: str, auto: bool, cfg: Config) -> str:
-    opts = _opts(cfg)
+    opts = _opts(cfg, url)
     opts.update(
         skip_download=True,
         outtmpl=os.path.join(outdir, "sub.%(ext)s"),
